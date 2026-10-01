@@ -1,11 +1,12 @@
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
-import { connectToMongoDB } from "./dbConnection.js";
+import { connectToMongoDB } from "./lib/dbConnection.js"
 import Auth from "./routes/auth.routes.js";
 import session from "express-session";
 import MongoStore from "connect-mongo";
-
+import ordersRoutes from "./routes/orders.routes.js";
+import productsRoutes from "./routes/products.routes.js";
 dotenv.config();
 const PORT = 3001;
 const app = express();
@@ -39,6 +40,8 @@ app.use(
 );
 
 app.use("/api/auth", Auth);
+app.use("/api/orders", ordersRoutes);
+app.use("/api/products", productsRoutes);
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

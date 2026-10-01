@@ -48,6 +48,7 @@ export const Login = async (req, res) => {
         fullName: userProfile.fullName, 
         email: userProfile.email,
         contactNumber: userProfile.contactNumber || null,
+        role: userProfile.role,
       },
       message: "Login successful",
     });
