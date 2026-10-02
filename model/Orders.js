@@ -16,6 +16,10 @@ const OrderItemSchema = new Schema({
     type: Number,
     required: true,
   },
+  size:{
+    type: String,
+    required: true,
+  }
 });
 
 const OrderSchema = new Schema(
@@ -33,9 +37,29 @@ const OrderSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
+      enum: [
+        "pending",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ],
       default: "pending",
     },
+    paymentMethod: {
+      type: String,
+      enum: ["cod", "online"],
+      default: "cod",
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "paid", "failed"],
+      default: "pending",
+    },
+    // deliveryAddress: {
+    //   type: String,
+    //   required: true,
+    // },
   },
   {
     timestamps: true, 

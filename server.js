@@ -7,6 +7,8 @@ import session from "express-session";
 import MongoStore from "connect-mongo";
 import ordersRoutes from "./routes/orders.routes.js";
 import productsRoutes from "./routes/products.routes.js";
+import publicRoutes from "./routes/public.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
 dotenv.config();
 const PORT = 3001;
 const app = express();
@@ -20,8 +22,7 @@ app.use(express.json());
 
 connectToMongoDB();
 
-app.use(
-  session({
+const SessionMIddleware = session({
     secret: process.env.SESSION_KEY,
     resave: false,
     saveUninitialized: false,
@@ -36,12 +37,13 @@ app.use(
       sameSite: "lax",
       maxAge: 1000 * 60 * 60 * 24,
     },
-  }),
-);
+  })
 
-app.use("/api/auth", Auth);
-app.use("/api/orders", ordersRoutes);
-app.use("/api/products", productsRoutes);
+app.use("/api/auth",SessionMIddleware, Auth);
+app.use("/api/orders", SessionMIddleware, ordersRoutes);
+app.use("/api/products", SessionMIddleware, productsRoutes);
+app.use("/api/public", publicRoutes);
+app.use("/api/payment", SessionMIddleware, paymentRoutes);
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

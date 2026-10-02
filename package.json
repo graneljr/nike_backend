@@ -19,6 +19,7 @@
     "express": "^5.2.1",
     "express-session": "^1.19.0",
     "mongoose": "^9.10.2",
+    "multer": "^2.4.0",
     "qrcode": "^1.5.4",
     "salt": "^0.5.5"
   }
