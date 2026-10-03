@@ -24,6 +24,7 @@ const handleImageUpload = (req, res, next) => {
   });
 };
 
+router.get("/", getProducts)
 router.post("/add", handleImageUpload, addProduct);
 router.post("/:id/sizes", addProductSize);
 

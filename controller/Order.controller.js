@@ -4,7 +4,7 @@ import Orders from "../model/Orders.js";
 import Order from "../model/Orders.js";
 export const metricsData = async (req, res) => {
   try {
-    const orders = await Product.countDocuments({
+    const orders = await Orders.countDocuments({
       createdAt: {
         $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
         $lt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
@@ -17,6 +17,7 @@ export const metricsData = async (req, res) => {
     const salesThisMonth = await Orders.aggregate([
       {
         $match: {
+          paymentStatus: "paid",
           createdAt: {
             $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
             $lt: new Date(
@@ -59,19 +60,24 @@ export const monthlyOrders = async (req, res) => {
   }
 };
 
-// TODO : Implement the latestOrders function to fetch the latest orders from the database and return them in the response.
-export const latestOrders = async (req, res) => {
+export const getLatestOrders = async (req, res) => {
   try {
-    const latestOrders = await Orders.find()
+    const latestOrders = await Order.find()
       .sort({ createdAt: -1 })
       .limit(10)
-      .populate("items.productId", "userId");
-  } catch (error) {}
+      .populate("userId", "fullName email")
+      .populate("items.productId");
+
+    return res.status(200).json(latestOrders);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Something went wrong!" });
+  }
 };
 
 export const order = async (req, res) => {
   try {
-      if (!req.session.userId) {
+    if (!req.session.userId) {
       return res.status(401).json({
         message: "Not authenticated",
       });
@@ -96,38 +102,50 @@ export const order = async (req, res) => {
       return total + sizeItem.price * detail.quantity;
     }, 0);
 
-   const orderId = await Orders.create({
+    const orderId = await Orders.create({
       userId: req.session.userId,
       items: orderDetails.map((detail) => ({
         productId: detail.productId,
         quantity: detail.quantity,
-        priceAtPurchase: orders.find(
-          (order) => order._id.toString() === detail.productId,
-        ).size.find((item) => item.size === detail.size).price,
+        priceAtPurchase: orders
+          .find((order) => order._id.toString() === detail.productId)
+          .size.find((item) => item.size === detail.size).price,
         size: detail.size,
       })),
       totalAmount,
       paymentMethod,
     });
 
-    res.status(201).json({ message: "Order placed successfully", orderId: orderId._id });
+    res
+      .status(201)
+      .json({ message: "Order placed successfully", orderId: orderId._id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
 export const getOrderById = async (req, res) => {
-    try {
-        const {orderId} =  req.params
-        const order = await Orders.findById(orderId)
-        if(!order) return res.status(404).json({message:"Order not found"}) 
-        
-        return res.status(200).json(order)
-    } catch (error) {
-        console.log(error.message)
-        return res.status(500).json({message:"Something went wrong"})
-    }
+  try {
+    const { orderId } = req.params;
+    const order = await Orders.findById(orderId);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    return res.status(200).json(order);
+  } catch (error) {
+    return res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
+
+export const updateOrderStatus = async (req, res) => {
+  try {
+    const {_id, status} = req.body
+    const updateOrder = await Order.findByIdAndUpdate(_id, {status:status}, { new: true, runValidators: true })
+    if(!updateOrder) return res.status(404).json({message:"Order is not found"})
+
+    return res.status(200).json({message:"Order status updated"})
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({message:"Something went wrong"})
+  }
 }
-
-// TODO : Implement updateOrderStatus function
-
