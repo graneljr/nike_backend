@@ -48,7 +48,9 @@ export const Login = async (req, res) => {
         fullName: userProfile.fullName, 
         email: userProfile.email,
         contactNumber: userProfile.contactNumber || null,
+        address: userProfile.address || "",
         role: userProfile.role,
+        createdAt: userProfile.createdAt,
       },
       message: "Login successful",
     });
@@ -103,5 +105,50 @@ export const GetMe = async (req, res) => {
     return res.status(500).json({
       message: "Something went wrong",
     });
+  }
+};
+
+export const UpdateProfile = async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const fullName = typeof req.body.fullName === "string"
+      ? req.body.fullName.trim()
+      : "";
+    const address = typeof req.body.address === "string"
+      ? req.body.address.trim()
+      : "";
+    const contactNumber = typeof req.body.contactNumber === "string"
+      ? req.body.contactNumber.trim()
+      : "";
+
+    if (!fullName) {
+      return res.status(400).json({ message: "Full name is required." });
+    }
+    if (contactNumber && contactNumber.length < 12) {
+      return res.status(400).json({ message: "Contact number must be at least 12 characters." });
+    }
+
+    const user = await User.findById(req.session.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Only profile fields are writable here. Email, password, and role are never updated.
+    user.fullName = fullName;
+    user.address = address;
+    user.contactNumber = contactNumber || undefined;
+    await user.save();
+
+    const userData = user.toObject();
+    delete userData.password;
+    return res.status(200).json({
+      message: "Profile updated successfully.",
+      userData,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Unable to update your profile." });
   }
 };

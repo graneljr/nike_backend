@@ -9,6 +9,7 @@ import ordersRoutes from "./routes/orders.routes.js";
 import productsRoutes from "./routes/products.routes.js";
 import publicRoutes from "./routes/public.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
+import userRoutes from "./routes/users.routes.js"
 dotenv.config();
 const PORT = 3001;
 const app = express();
@@ -43,6 +44,7 @@ app.use("/api/auth",SessionMIddleware, Auth);
 app.use("/api/orders", SessionMIddleware, ordersRoutes);
 app.use("/api/products", SessionMIddleware, productsRoutes);
 app.use("/api/public", publicRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/payment", SessionMIddleware, paymentRoutes);
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

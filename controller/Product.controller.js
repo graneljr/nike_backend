@@ -80,6 +80,36 @@ export const addProductSize = async (req, res) => {
     }
 };
 
+export const updateProductSize = async (req, res) => {
+    try {
+        const price = Number(req.body.price);
+        const quantity = Number(req.body.quantity);
+        if (!Number.isFinite(price) || price < 0 || !Number.isInteger(quantity) || quantity < 0) {
+            return res.status(400).json({ error: "Please provide a valid price and non-negative whole-number quantity." });
+        }
+
+        const product = await Product.findById(req.params.id);
+        if (!product) {
+            return res.status(404).json({ error: "Product not found." });
+        }
+
+        const size = product.size.id(req.params.sizeId);
+        if (!size) {
+            return res.status(404).json({ error: "Size option not found." });
+        }
+
+        size.price = price;
+        size.quantity = quantity;
+        await product.save();
+        res.status(200).json({ message: "Size updated successfully", product });
+    } catch (error) {
+        if (error.name === "CastError") {
+            return res.status(404).json({ error: "Product or size option not found." });
+        }
+        res.status(500).json({ error: error.message });
+    }
+};
+
 
 export const getProducts = async (req, res) => {
     try {

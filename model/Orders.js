@@ -42,6 +42,7 @@ const OrderSchema = new Schema(
         "processing",
         "shipped",
         "delivered",
+        "received",
         "cancelled",
       ],
       default: "pending",
