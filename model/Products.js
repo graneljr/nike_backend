@@ -29,6 +29,7 @@
         },
         category:{
             type:String,
+            enum:["running", "basketball", "lifestyle", "traning"],
             required:true
         },
         image:{

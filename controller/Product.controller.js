@@ -146,3 +146,20 @@ export const getProductById = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+
+export const getProductByCategory = async (req, res) => {
+    try {
+        const category = req.params.category
+        let product;
+        if(category.toLowerCase() === "all"){
+            product = await Product.find()
+        }else{
+                product = await Product.find({category:category})
+        }
+        console.log(product)
+        return res.status(200).json(product)
+    } catch (error) {
+        return res.status(500).json({message:"Something went wrong!"})
+    }
+}

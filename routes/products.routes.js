@@ -1,5 +1,5 @@
 import express from "express";
-import { addProduct, addProductSize, getFeaturedProducts, getProducts, getProductById, updateProductSize } from "../controller/Product.controller.js";
+import { addProduct, addProductSize, getFeaturedProducts, getProducts, getProductById, updateProductSize, getProductByCategory } from "../controller/Product.controller.js";
 import multer from "multer";
 
 const router = express.Router();
@@ -28,5 +28,6 @@ router.get("/", getProducts)
 router.post("/add", handleImageUpload, addProduct);
 router.post("/:id/sizes", addProductSize);
 router.patch("/:id/sizes/:sizeId", updateProductSize);
+router.get("/:category",getProductByCategory)
 
 export default router;

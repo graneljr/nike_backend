@@ -7,15 +7,25 @@ export const metricsData = async (req, res) => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const monthRange = (start, end) => ({ createdAt: { $gte: start, $lt: end } });
+    const previousMonthStart = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1,
+    );
+    const monthRange = (start, end) => ({
+      createdAt: { $gte: start, $lt: end },
+    });
     const paidSales = (start, end) =>
       Orders.aggregate([
         { $match: { paymentStatus: "paid", ...monthRange(start, end) } },
         { $group: { _id: null, totalSales: { $sum: "$totalAmount" } } },
       ]);
     const percentageChange = (current, previous) =>
-      previous === 0 ? (current === 0 ? 0 : "new") : ((current - previous) / previous) * 100;
+      previous === 0
+        ? current === 0
+          ? 0
+          : "new"
+        : ((current - previous) / previous) * 100;
 
     const [
       orders,
@@ -43,7 +53,10 @@ export const metricsData = async (req, res) => {
       salesThisMonth: currentSales,
       trends: {
         orders: percentageChange(orders, ordersPreviousMonth),
-        registeredUsers: percentageChange(registeredUsers, usersBeforeThisMonth),
+        registeredUsers: percentageChange(
+          registeredUsers,
+          usersBeforeThisMonth,
+        ),
         salesThisMonth: percentageChange(currentSales, previousSales),
       },
     });
@@ -86,14 +99,26 @@ export const getOrdersPaginated = async (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ message: "Not authenticated" });
     }
-    const requestingUser = await User.findById(req.session.userId).select("role");
+    const requestingUser = await User.findById(req.session.userId).select(
+      "role",
+    );
     if (requestingUser?.role !== "admin") {
       return res.status(403).json({ message: "Admin access required." });
     }
 
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
-    const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 10));
-    const allowedStatuses = ["pending", "processing", "shipped", "delivered", "received", "cancelled"];
+    const limit = Math.min(
+      50,
+      Math.max(1, Number.parseInt(req.query.limit, 10) || 10),
+    );
+    const allowedStatuses = [
+      "pending",
+      "processing",
+      "shipped",
+      "delivered",
+      "received",
+      "cancelled",
+    ];
     const status = req.query.status?.toLowerCase();
     if (status && !allowedStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid order status filter." });
@@ -135,17 +160,32 @@ export const getMyOrders = async (req, res) => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthStart = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1,
+    );
     const userFilter = { userId: req.session.userId };
     const percentageChange = (current, previous) =>
-      previous === 0 ? (current === 0 ? 0 : "new") : ((current - previous) / previous) * 100;
+      previous === 0
+        ? current === 0
+          ? 0
+          : "new"
+        : ((current - previous) / previous) * 100;
 
     const orderQuery = Order.find(userFilter)
       .sort({ createdAt: -1 })
       .populate("items.productId", "name image");
     if (req.query.all !== "true") orderQuery.limit(5);
 
-    const [orders, totalOrders, onTheWay, ordersThisMonth, ordersPreviousMonth, ordersBeforeThisMonth] = await Promise.all([
+    const [
+      orders,
+      totalOrders,
+      onTheWay,
+      ordersThisMonth,
+      ordersPreviousMonth,
+      ordersBeforeThisMonth,
+    ] = await Promise.all([
       orderQuery,
       Order.countDocuments(userFilter),
       Order.countDocuments({ ...userFilter, status: "shipped" }),
@@ -190,18 +230,26 @@ export const updateMyOrderStatus = async (req, res) => {
     }
 
     const nextStatus = req.body.status;
-    const canCancel = order.status === "processing" && nextStatus === "cancelled";
-    const canConfirmReceived = order.status === "shipped" && nextStatus === "received";
+    const canCancel =
+      order.status === "processing" && nextStatus === "cancelled";
+    const canConfirmReceived =
+      order.status === "shipped" && nextStatus === "received";
     if (!canCancel && !canConfirmReceived) {
       return res.status(400).json({
-        message: "You can cancel processing orders or confirm receipt of shipped orders.",
+        message:
+          "You can cancel processing orders or confirm receipt of shipped orders.",
       });
     }
-
+    if(order.paymentMethod === "cod" && nextStatus === "received") {
+      order.paymentStatus = "paid"
+    }
     order.status = nextStatus;
     await order.save();
     return res.status(200).json({
-      message: nextStatus === "received" ? "Order marked as received." : "Order cancelled.",
+      message:
+        nextStatus === "received"
+          ? "Order marked as received."
+          : "Order cancelled.",
       order,
     });
   } catch (error) {
@@ -273,16 +321,23 @@ export const getOrderById = async (req, res) => {
   }
 };
 
-
 export const updateOrderStatus = async (req, res) => {
   try {
-    const {_id, status} = req.body
-    const updateOrder = await Order.findByIdAndUpdate(_id, {status:status}, { new: true, runValidators: true })
-    if(!updateOrder) return res.status(404).json({message:"Order is not found"})
-
-    return res.status(200).json({message:"Order status updated"})
+    const { _id, status } = req.body;
+    const updateOrder = await Order.findByIdAndUpdate(
+      _id,
+      { status: status },
+      { new: true, runValidators: true },
+    );
+    if (!updateOrder) return res.status(404).json({ message: "Order is not found" });
+    if (updateOrder.paymentMethod === "cod" && (status === "received" || status === "delivered")) {
+       console.log(status)
+      await Order.findByIdAndUpdate(_id, { paymentStatus: "paid" } );
+      console.log("cod success")
+    }
+    return res.status(200).json({ message: "Order status updated" });
   } catch (error) {
-    console.log(error)
-    return res.status(500).json({message:"Something went wrong"})
+    console.log(error);
+    return res.status(500).json({ message: "Something went wrong" });
   }
-}
+};

@@ -10,25 +10,34 @@ export const processPayment = async (req, res) => {
     }
 
     const amount = order.totalAmount;
-const paymentQRCode = await qr.toDataURL(
-  `http://192.168.100.11:5173/pay/${orderId}`
-);
+    const paymentQRCode = await qr.toDataURL(
+      `http://192.168.100.11:5173/pay/${orderId}`,
+    );
     res.status(200).json({ amount: amount, qrCode: paymentQRCode });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-
 export const payOrder = async (req, res) => {
   try {
-    const {orderId} = req.body
-    const order = await Order.findByIdAndUpdate(orderId,  { paymentStatus: "paid" },
-  { new: true, runValidators: true })
-  if(!order) return res.status(404).json({message:"Order not found"})
-  return res.status(200).json({message:"Payment Successful"})
+    const { orderId } = req.body;
+    const order = await Order.findByIdAndUpdate(
+      orderId,
+      { paymentStatus: "paid" },
+      { new: true, runValidators: true },
+    );
+    if (!order) return res.status(404).json({ message: "Order not found" });
+     req.io
+      .to(`order_${orderId}`)
+      .emit("payment-success", {
+        orderId,
+        status: "paid",
+      });
+
+    return res.status(200).json({ message: "Payment Successful" });
   } catch (error) {
-    console.log()
-    return res.status(500).json({message:"Something went wrong!"})
+    console.log();
+    return res.status(500).json({ message: "Something went wrong!" });
   }
-}
+};
