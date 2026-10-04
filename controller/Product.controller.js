@@ -151,12 +151,8 @@ export const getProductById = async (req, res) => {
 export const getProductByCategory = async (req, res) => {
     try {
         const category = req.params.category
-        let product;
-        if(category.toLowerCase() === "all"){
-            product = await Product.find()
-        }else{
-                product = await Product.find({category:category})
-        }
+        let product = await Product.find({category:category})
+
         console.log(product)
         return res.status(200).json(product)
     } catch (error) {

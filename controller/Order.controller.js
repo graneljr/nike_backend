@@ -2,6 +2,7 @@ import Product from "../model/Products.js";
 import User from "../model/User.js";
 import Orders from "../model/Orders.js";
 import Order from "../model/Orders.js";
+import { InventoryError, updateOrderWithInventory } from "../lib/orderInventory.js";
 export const metricsData = async (req, res) => {
   try {
     const now = new Date();
@@ -240,19 +241,22 @@ export const updateMyOrderStatus = async (req, res) => {
           "You can cancel processing orders or confirm receipt of shipped orders.",
       });
     }
-    if(order.paymentMethod === "cod" && nextStatus === "received") {
-      order.paymentStatus = "paid"
+    const updatedOrder = await updateOrderWithInventory(order._id, nextStatus);
+    if (updatedOrder.paymentMethod === "cod" && nextStatus === "received") {
+      updatedOrder.paymentStatus = "paid";
+      await updatedOrder.save();
     }
-    order.status = nextStatus;
-    await order.save();
     return res.status(200).json({
       message:
         nextStatus === "received"
           ? "Order marked as received."
           : "Order cancelled.",
-      order,
+      order: updatedOrder,
     });
   } catch (error) {
+    if (error instanceof InventoryError) {
+      return res.status(error.status).json({ message: error.message });
+    }
     if (error.name === "CastError") {
       return res.status(404).json({ message: "Order not found." });
     }
@@ -324,20 +328,17 @@ export const getOrderById = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
   try {
     const { _id, status } = req.body;
-    const updateOrder = await Order.findByIdAndUpdate(
-      _id,
-      { status: status },
-      { new: true, runValidators: true },
-    );
+    const updateOrder = await updateOrderWithInventory(_id, status);
     if (!updateOrder) return res.status(404).json({ message: "Order is not found" });
     if (updateOrder.paymentMethod === "cod" && (status === "received" || status === "delivered")) {
-       console.log(status)
-      await Order.findByIdAndUpdate(_id, { paymentStatus: "paid" } );
-      console.log("cod success")
+      updateOrder.paymentStatus = "paid";
+      await updateOrder.save();
     }
     return res.status(200).json({ message: "Order status updated" });
   } catch (error) {
-    console.log(error);
+    if (error instanceof InventoryError) {
+      return res.status(error.status).json({ message: error.message });
+    }
     return res.status(500).json({ message: "Something went wrong" });
   }
 };

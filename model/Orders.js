@@ -57,6 +57,18 @@ const OrderSchema = new Schema(
       enum: ["pending", "paid", "failed"],
       default: "pending",
     },
+    inventoryDeducted: {
+      type: Boolean,
+      default: false,
+    },
+    inventoryRestored: {
+      type: Boolean,
+      default: false,
+    },
+    inventoryAdjustmentInProgress: {
+      type: Boolean,
+      default: false,
+    },
     // deliveryAddress: {
     //   type: String,
     //   required: true,

@@ -10,6 +10,7 @@ import productsRoutes from "./routes/products.routes.js";
 import publicRoutes from "./routes/public.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import userRoutes from "./routes/users.routes.js";
+import cartRoutes from "./routes/cart.routes.js";
 import http from "http";
 import { Server } from "socket.io";
 import paymentSocket from "./lib/paymentSocket.js";
@@ -67,6 +68,7 @@ const SessionMIddleware = session({
 
 app.use("/api/auth", SessionMIddleware, Auth);
 app.use("/api/orders", SessionMIddleware, ordersRoutes);
+app.use("/api/cart", SessionMIddleware, cartRoutes);
 app.use("/api/products", SessionMIddleware, productsRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/users", userRoutes);
