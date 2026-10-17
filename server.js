@@ -19,26 +19,28 @@ dotenv.config();
 const PORT = 3001;
 const app = express();
 
+const allowedOrigins = ['https://nike-frontend-alpha.vercel.app/', 'http://localhost:3000'];
+
 app.use(
   cors({
-    // Dynamically allow the incoming origin
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl)
-      if (!origin) return callback(null, true);
-      
-      // Reflect the origin back to the client
-      callback(null, true);
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
     },
     credentials: true,
   })
 );
 
 
+
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: "https://nike-backend-flax.vercel.app/",
     credentials: true,
   },
 });
