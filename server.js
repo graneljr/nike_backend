@@ -21,10 +21,18 @@ const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    // Dynamically allow the incoming origin
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+      
+      // Reflect the origin back to the client
+      callback(null, true);
+    },
     credentials: true,
   })
 );
+
 
 const server = http.createServer(app);
 
