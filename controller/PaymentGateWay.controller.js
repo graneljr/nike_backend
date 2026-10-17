@@ -11,7 +11,7 @@ export const processPayment = async (req, res) => {
 
     const amount = order.totalAmount;
     const paymentQRCode = await qr.toDataURL(
-      `http://10.10.181.178:5173/pay/${orderId}`,
+      `https://nike-frontend-alpha.vercel.app/pay/${orderId}`,
     );
     res.status(200).json({ amount: amount, qrCode: paymentQRCode });
   } catch (error) {
