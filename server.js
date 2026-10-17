@@ -33,7 +33,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "https://nike-backend-flax.vercel.app/",
+    origin: true,
     credentials: true,
   },
 });
