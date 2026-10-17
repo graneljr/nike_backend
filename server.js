@@ -16,12 +16,13 @@ import { Server } from "socket.io";
 import paymentSocket from "./lib/paymentSocket.js";
 dotenv.config();
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 const app = express();
+app.set("trust proxy", 1);
 
 app.use(
   cors({
-    origin: true, // This dynamically reflects the incoming origin, bypassing the browser restriction
+    origin: true, 
     credentials: true,
   })
 );
@@ -63,7 +64,7 @@ const SessionMIddleware = session({
 
   cookie: {
     httpOnly: true,
-    secure: false,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     maxAge: 1000 * 60 * 60 * 24,
   },
@@ -77,6 +78,10 @@ app.use("/api/public", publicRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/payment", SessionMIddleware, paymentRoutes);
 
-server.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL) {
+  server.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+  });
+}
+
+export default server;
