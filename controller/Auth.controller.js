@@ -137,7 +137,6 @@ export const UpdateProfile = async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
-    // Only profile fields are writable here. Email, password, and role are never updated.
     user.fullName = fullName;
     user.address = address;
     user.contactNumber = contactNumber || undefined;

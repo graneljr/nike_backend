@@ -1,9 +1,41 @@
-import  Product  from "../model/Products.js";
+import Product, { PRODUCT_CATEGORIES } from "../model/Products.js";
 import cloudinary from "../lib/cloudinary.js";
+
+const normalizeCategories = (value) => {
+    let categories = value;
+    if (typeof categories === "string") {
+        try {
+            const parsed = JSON.parse(categories);
+            categories = Array.isArray(parsed)
+                ? parsed
+                : typeof parsed === "string"
+                  ? [parsed]
+                  : null;
+        } catch {
+            categories = [categories];
+        }
+    }
+    if (!Array.isArray(categories)) return null;
+
+    const normalized = categories.map((category) => {
+        const value = String(category ?? "").trim().toLowerCase();
+        return value === "traning" ? "training" : value;
+    });
+    if (
+        normalized.length < 1 ||
+        normalized.length > 2 ||
+        normalized.some((category) => !PRODUCT_CATEGORIES.includes(category)) ||
+        new Set(normalized).size !== normalized.length
+    ) {
+        return null;
+    }
+    return normalized;
+};
 
 export const addProduct = async (req, res) =>{
     try {
-        const { name, description, category } = req.body;
+        const { name, description } = req.body;
+        const categories = normalizeCategories(req.body.category);
         if (!req.file) {
             return res.status(400).json({ error: "A product image is required." });
         }
@@ -14,8 +46,8 @@ export const addProduct = async (req, res) =>{
         } catch {
             return res.status(400).json({ error: "Please provide valid size options." });
         }
-        if (!Array.isArray(sizes) || sizes.length === 0 || !name?.trim() || !category?.trim()) {
-            return res.status(400).json({ error: "Please provide valid product details." });
+        if (!Array.isArray(sizes) || sizes.length === 0 || !name?.trim() || !categories) {
+            return res.status(400).json({ error: "Please provide a product name and one or two valid categories." });
         }
 
         const parsedSizes = sizes.map(({ size, price, quantity }) => ({
@@ -42,7 +74,7 @@ export const addProduct = async (req, res) =>{
             name: name.trim(),
             price: parsedSizes[0].price,
             description,
-            category: category.trim(),
+            category: categories,
             image: uploadResult.secure_url,
             size: parsedSizes,
         });
@@ -150,10 +182,15 @@ export const getProductById = async (req, res) => {
 
 export const getProductByCategory = async (req, res) => {
     try {
-        const category = req.params.category
-        let product = await Product.find({category:category})
-
-        console.log(product)
+        const category = String(req.params.category ?? "").trim().toLowerCase();
+        const normalizedCategory = category === "traning" ? "training" : category;
+        if (!PRODUCT_CATEGORIES.includes(normalizedCategory)) {
+            return res.status(400).json({ message: "Unknown product category." });
+        }
+        const categoryPatterns = normalizedCategory === "training"
+            ? [/^training$/i, /^traning$/i]
+            : [new RegExp(`^${normalizedCategory}$`, "i")];
+        const product = await Product.find({ category: { $in: categoryPatterns } });
         return res.status(200).json(product)
     } catch (error) {
         return res.status(500).json({message:"Something went wrong!"})
