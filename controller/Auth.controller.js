@@ -128,7 +128,7 @@ export const UpdateProfile = async (req, res) => {
     if (!fullName) {
       return res.status(400).json({ message: "Full name is required." });
     }
-    if (contactNumber && contactNumber.length < 12) {
+    if (contactNumber && contactNumber.length < 11) {
       return res.status(400).json({ message: "Contact number must be at least 12 characters." });
     }
 

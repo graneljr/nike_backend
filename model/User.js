@@ -20,7 +20,7 @@ const UserSchema = new mongoose.Schema(
     },
     contactNumber:{
         type:String,
-           minlength: [12, 'Username must be at least 5 characters long'] 
+           minlength: [11, 'Username must be at least 5 characters long'] 
     },
     role:{
       type:String,
