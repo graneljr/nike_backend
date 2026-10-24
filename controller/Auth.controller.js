@@ -1,5 +1,6 @@
 import User from "../model/User.js";
 import bcrypt from "bcrypt";
+import { containsEmoji } from "../lib/inputValidation.js";
 
 const SALT_ROUNDS = 12;
 
@@ -14,6 +15,18 @@ const comparePassword = async (password, hashedPassword) => {
 export const Regisger = async (req, res) => {
   try {
     const { fullName, email, password } = req.body;
+    if ([fullName, email, password].some((value) => typeof value !== "string")) {
+      return res.status(400).json({ message: "Name, email, and password are required." });
+    }
+    if (Array.from(password).length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters long." });
+    }
+    if ([fullName, email, password].some(containsEmoji)) {
+      return res.status(400).json({ message: "Emoji characters are not allowed." });
+    }
+    if (/\d/.test(fullName)) {
+      return res.status(400).json({ message: "Name cannot contain numbers." });
+    }
     const hashedPassword = await hashPassword(password);
     await User.create({
       fullName: fullName,
@@ -127,6 +140,9 @@ export const UpdateProfile = async (req, res) => {
 
     if (!fullName) {
       return res.status(400).json({ message: "Full name is required." });
+    }
+    if ([fullName, address, contactNumber].some(containsEmoji)) {
+      return res.status(400).json({ message: "Emoji characters are not allowed." });
     }
     if (contactNumber && contactNumber.length < 11) {
       return res.status(400).json({ message: "Contact number must be at least 12 characters." });

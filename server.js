@@ -14,6 +14,7 @@ import cartRoutes from "./routes/cart.routes.js";
 import http from "http";
 import { Server } from "socket.io";
 import paymentSocket from "./lib/paymentSocket.js";
+import { rejectEmojiInput } from "./lib/inputValidation.js";
 dotenv.config();
 
 const PORT = process.env.PORT || 3001;
@@ -40,6 +41,7 @@ const io = new Server(server, {
 });
 
 app.use(express.json());
+app.use(rejectEmojiInput);
 
 
 paymentSocket(io);
