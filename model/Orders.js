@@ -57,6 +57,17 @@ const OrderSchema = new Schema(
       enum: ["pending", "paid", "failed"],
       default: "pending",
     },
+    paidAt: {
+      type: Date,
+    },
+    demoPaymentTokenHash: {
+      type: String,
+      select: false,
+    },
+    demoPaymentTokenExpiresAt: {
+      type: Date,
+      select: false,
+    },
     inventoryDeducted: {
       type: Boolean,
       default: false,

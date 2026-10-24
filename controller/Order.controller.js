@@ -16,9 +16,21 @@ export const metricsData = async (req, res) => {
     const monthRange = (start, end) => ({
       createdAt: { $gte: start, $lt: end },
     });
+    const paidMonthRange = (start, end) => ({
+      $or: [
+        { paidAt: { $gte: start, $lt: end } },
+        { paidAt: null, createdAt: { $gte: start, $lt: end } },
+      ],
+    });
     const paidSales = (start, end) =>
       Orders.aggregate([
-        { $match: { paymentStatus: "paid", ...monthRange(start, end) } },
+        {
+          $match: {
+            paymentStatus: "paid",
+            status: { $in: ["delivered", "received"] },
+            ...paidMonthRange(start, end),
+          },
+        },
         { $group: { _id: null, totalSales: { $sum: "$totalAmount" } } },
       ]);
     const percentageChange = (current, previous) =>
@@ -242,10 +254,16 @@ export const updateMyOrderStatus = async (req, res) => {
       });
     }
     const updatedOrder = await updateOrderWithInventory(order._id, nextStatus);
-    if (updatedOrder.paymentMethod === "cod" && nextStatus === "received") {
+    if (
+      updatedOrder.paymentMethod === "cod" &&
+      nextStatus === "received" &&
+      updatedOrder.paymentStatus !== "paid"
+    ) {
       updatedOrder.paymentStatus = "paid";
+      updatedOrder.paidAt = new Date();
       await updatedOrder.save();
     }
+    req.io.emit("sales-metrics-updated", { orderId: updatedOrder._id });
     return res.status(200).json({
       message:
         nextStatus === "received"
@@ -330,10 +348,16 @@ export const updateOrderStatus = async (req, res) => {
     const { _id, status } = req.body;
     const updateOrder = await updateOrderWithInventory(_id, status);
     if (!updateOrder) return res.status(404).json({ message: "Order is not found" });
-    if (updateOrder.paymentMethod === "cod" && (status === "received" || status === "delivered")) {
+    if (
+      updateOrder.paymentMethod === "cod" &&
+      (status === "received" || status === "delivered") &&
+      updateOrder.paymentStatus !== "paid"
+    ) {
       updateOrder.paymentStatus = "paid";
+      updateOrder.paidAt = new Date();
       await updateOrder.save();
     }
+    req.io.emit("sales-metrics-updated", { orderId: updateOrder._id });
     return res.status(200).json({ message: "Order status updated" });
   } catch (error) {
     if (error instanceof InventoryError) {
