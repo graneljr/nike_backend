@@ -4,7 +4,7 @@ import Order from "../model/Orders.js";
 
 export const getUsers = async (req, res) => {
     try {
-        const users  = await User.find({role:"user"}).select("-password")
+        const users  = await User.find({role:"user"}).select("-password").lean()
         return res.status(200).json(users)
     } catch (error) {
         return res.status(500).json({message:"Something went wrong!"})
