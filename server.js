@@ -77,7 +77,7 @@ app.use("/api/orders", SessionMIddleware, ordersRoutes);
 app.use("/api/cart", SessionMIddleware, cartRoutes);
 app.use("/api/products", SessionMIddleware, productsRoutes);
 app.use("/api/public", publicRoutes);
-app.use("/api/users", userRoutes);
+app.use("/api/users", SessionMIddleware, userRoutes);
 app.use("/api/payment", SessionMIddleware, paymentRoutes);
 
 if (!process.env.VERCEL) {
