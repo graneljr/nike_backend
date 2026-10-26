@@ -80,6 +80,14 @@ const OrderSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    buyCountAdjusted: {
+      type: Boolean,
+      default: false,
+    },
+    buyCountAdjustmentInProgress: {
+      type: Boolean,
+      default: false,
+    },
     // deliveryAddress: {
     //   type: String,
     //   required: true,
