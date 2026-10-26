@@ -54,11 +54,31 @@ const OrderSchema = new Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ["pending", "paid", "failed"],
+      enum: ["pending", "paid", "failed", "refunded"],
       default: "pending",
     },
     paidAt: {
       type: Date,
+    },
+    refundStatus: {
+      type: String,
+      enum: ["none", "pending", "refunded"],
+      default: "none",
+    },
+    refundAmount: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
+    refundRequestedAt: {
+      type: Date,
+    },
+    refundProcessedAt: {
+      type: Date,
+    },
+    refundProcessedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
     },
     demoPaymentTokenHash: {
       type: String,

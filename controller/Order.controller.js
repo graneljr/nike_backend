@@ -244,13 +244,14 @@ export const updateMyOrderStatus = async (req, res) => {
 
     const nextStatus = req.body.status;
     const canCancel =
-      order.status === "processing" && nextStatus === "cancelled";
+      ["pending", "processing"].includes(order.status) &&
+      nextStatus === "cancelled";
     const canConfirmReceived =
       order.status === "shipped" && nextStatus === "received";
     if (!canCancel && !canConfirmReceived) {
       return res.status(400).json({
         message:
-          "You can cancel processing orders or confirm receipt of shipped orders.",
+          "You can cancel pending or processing orders, or confirm receipt of shipped orders.",
       });
     }
     const updatedOrder = await updateOrderWithInventory(order._id, nextStatus);
@@ -268,6 +269,8 @@ export const updateMyOrderStatus = async (req, res) => {
       message:
         nextStatus === "received"
           ? "Order marked as received."
+          : updatedOrder.refundStatus === "pending"
+            ? "Order cancelled. Your refund request is pending review."
           : "Order cancelled.",
       order: updatedOrder,
     });
@@ -364,5 +367,79 @@ export const updateOrderStatus = async (req, res) => {
       return res.status(error.status).json({ message: error.message });
     }
     return res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
+export const getRefunds = async (req, res) => {
+  try {
+    if (!req.session?.userId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const requestingUser = await User.findById(req.session.userId).select("role");
+    if (!requestingUser) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const filter = {
+      refundStatus: { $in: ["pending", "refunded"] },
+      ...(requestingUser.role === "admin" ? {} : { userId: req.session.userId }),
+    };
+    const refunds = await Order.find(filter)
+      .sort({ refundRequestedAt: -1, updatedAt: -1 })
+      .populate("userId", "fullName email");
+
+    return res.status(200).json({ refunds });
+  } catch (error) {
+    return res.status(500).json({ message: "Unable to load refund requests." });
+  }
+};
+
+export const approveRefund = async (req, res) => {
+  try {
+    if (!req.session?.userId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const requestingUser = await User.findById(req.session.userId).select("role");
+    if (requestingUser?.role !== "admin") {
+      return res.status(403).json({ message: "Admin access required." });
+    }
+
+    const order = await Order.findOneAndUpdate(
+      {
+        _id: req.params.orderId,
+        status: "cancelled",
+        paymentStatus: "paid",
+        refundStatus: "pending",
+      },
+      {
+        $set: {
+          paymentStatus: "refunded",
+          refundStatus: "refunded",
+          refundProcessedAt: new Date(),
+          refundProcessedBy: req.session.userId,
+        },
+      },
+      { new: true, runValidators: true },
+    ).populate("userId", "fullName email");
+
+    if (!order) {
+      return res.status(409).json({
+        message: "This order has no pending refund request.",
+      });
+    }
+
+    req.io.emit("refunds-updated", { orderId: order._id });
+    req.io.emit("sales-metrics-updated", { orderId: order._id });
+    return res.status(200).json({
+      message: "Refund marked as refunded.",
+      order,
+    });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(404).json({ message: "Order not found." });
+    }
+    return res.status(500).json({ message: "Unable to approve this refund." });
   }
 };
